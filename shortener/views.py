@@ -344,9 +344,8 @@ def url_clicks(request, short_code):
         'clicks': clicks,
         'query': query or '',
     }
-    
-    return render(request, 'shortener/clicks.html', context)
 
+    return render(request, 'shortener/click_list.html', context)
 @login_required
 def export_clicks(request, short_code):
     """View for exporting URL clicks as CSV."""
