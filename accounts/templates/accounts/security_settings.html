@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Security Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Security Settings</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Manage your account security settings and login activity.
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h5 class="border-bottom pb-2 mb-3">Two-Factor Authentication</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-1">Two-Factor Authentication</h6>
+                                <p class="text-muted small mb-0">Add an extra layer of security to your account</p>
+                            </div>
+                            <div>
+                                <a href="#" class="btn btn-outline-primary">
+                                    <i class="fas fa-lock me-1"></i> Enable 2FA
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h5 class="border-bottom pb-2 mb-3">Change Password</h5>
+                        <p class="text-muted mb-3">It's a good idea to use a strong password that you don't use elsewhere.</p>
+                        <a href="{% url 'password_change' %}" class="btn btn-primary">
+                            <i class="fas fa-key me-1"></i> Change Password
+                        </a>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2 mb-3">Active Sessions</h5>
+                        <p class="text-muted mb-3">This is a list of devices that have logged into your account.</p>
+                        
+                        <div class="list-group mb-3">
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-desktop me-2"></i>
+                                            {{ request.META.HTTP_USER_AGENT|slice:":30" }}...
+                                        </h6>
+                                        <small class="text-muted">
+                                            <i class="fas fa-circle text-success me-1"></i>
+                                            Current session
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-primary">This Device</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Additional sessions would be listed here -->
+                        </div>
+                        
+                        <button class="btn btn-outline-danger" disabled>
+                            <i class="fas fa-sign-out-alt me-1"></i> Sign out all other sessions
+                        </button>
+                    </div>
+                    
+                    <div class="mt-5 pt-4 border-top">
+                        <h5 class="text-danger mb-3">Danger Zone</h5>
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <h6 class="card-title text-danger">Delete Account</h6>
+                                <p class="card-text text-muted">Once you delete your account, there is no going back. Please be certain.</p>
+                                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                    <i class="far fa-trash-alt me-1"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'accounts:account_settings' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Account Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteAccountModalLabel">Delete Your Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+                <p class="text-danger">All your data will be permanently removed.</p>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmDelete">
+                    <label class="form-check-label" for="confirmDelete">
+                        I understand that this action is irreversible
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                    <i class="far fa-trash-alt me-1"></i> Delete My Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable/disable delete button based on checkbox
+    document.getElementById('confirmDelete').addEventListener('change', function() {
+        document.getElementById('confirmDeleteBtn').disabled = !this.checked;
+    });
+    
+    // Handle delete button click
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        // In a real application, you would submit a form or make an AJAX request here
+        alert('Account deletion would be processed here. This is just a demo.');
+    });
+</script>
+{% endblock %}

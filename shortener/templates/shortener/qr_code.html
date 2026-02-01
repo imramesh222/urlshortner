@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ url.title|default:"Untitled Link" }} QR Code - URL Shortener{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'shortener:dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'shortener:url_list' %}">My Links</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'shortener:url_analytics' url.short_code %}">Analytics</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">QR Code</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0">
+                    {{ url.title|default:"Untitled Link" }}
+                    <a href="{% url 'shortener:edit_url' url.short_code %}" class="btn btn-sm btn-outline-secondary ms-2">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </h1>
+                <div class="text-muted small mt-1">
+                    <a href="{{ url.original_url }}" target="_blank" class="text-muted text-truncate d-inline-block" style="max-width: 300px;">
+                        {{ url.original_url }}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-body text-center p-5">
+                <div class="mb-4">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ url.get_absolute_url|urlencode }}" 
+                         alt="QR Code for {{ url.get_absolute_url }}" 
+                         class="img-fluid mb-4" 
+                         style="max-width: 250px;">
+                    
+                    <div class="shortened-url mb-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="shortUrl" value="{{ url.get_absolute_url }}" readonly>
+                            <button class="btn btn-outline-secondary copy-btn" type="button" data-clipboard-target="#shortUrl">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted mb-4">
+                        Scan this QR code with a mobile device's camera or a QR code scanner app to visit the link.
+                    </p>
+                    
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ url.get_absolute_url|urlencode }}" 
+                           class="btn btn-primary" 
+                           download="qrcode-{{ url.short_code }}.png">
+                            <i class="fas fa-download me-1"></i> Download PNG
+                        </a>
+                        
+                        <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&format=svg&data={{ url.get_absolute_url|urlencode }}" 
+                           class="btn btn-outline-primary" 
+                           download="qrcode-{{ url.short_code }}.svg">
+                            <i class="fas fa-download me-1"></i> Download SVG
+                        </a>
+                        
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#embedModal">
+                            <i class="fas fa-code me-1"></i> Embed Code
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mt-5">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">QR Code Usage</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-print text-primary me-2"></i>
+                                        Print on business cards and flyers
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-mobile-alt text-primary me-2"></i>
+                                        Share on social media
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-envelope text-primary me-2"></i>
+                                        Include in email signatures
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-file-alt text-primary me-2"></i>
+                                        Add to presentations and documents
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-store text-primary me-2"></i>
+                                        Display in physical locations
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">QR Code Best Practices</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Test the QR code before printing
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Ensure sufficient contrast with background
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Leave a "quiet zone" around the code
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Make it at least 1x1 inch (2.5x2.5 cm) in size
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Consider adding a call-to-action
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">QR Code Analytics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 col-md-3 mb-3">
+                                <div class="h3 mb-1">{{ qr_scans|default:0 }}</div>
+                                <div class="text-muted small">Total Scans</div>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3">
+                                <div class="h3 mb-1">{{ unique_qr_scanners|default:0 }}</div>
+                                <div class="text-muted small">Unique Scanners</div>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3">
+                                <div class="h3 mb-1">{{ last_scan_date|default:"Never"|date:"M j, Y" }}</div>
+                                <div class="text-muted small">Last Scan</div>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3">
+                                <div class="h3 mb-1">
+                                    {% if scan_change is not None %}
+                                        {% if scan_change > 0 %}
+                                            <span class="text-success">+{{ scan_change }}%</span>
+                                        {% elif scan_change < 0 %}
+                                            <span class="text-danger">{{ scan_change }}%</span>
+                                        {% else %}
+                                            {{ scan_change }}%
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                                <div class="text-muted small">vs Previous Period</div>
+                            </div>
+                        </div>
+                        
+                        {% if qr_scan_data %}
+                        <div class="mt-4">
+                            <h6 class="mb-3">Scan Activity (Last 30 Days)</h6>
+                            <div style="height: 200px;">
+                                <canvas id="qrScanChart"></canvas>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Embed Code Modal -->
+<div class="modal fade" id="embedModal" tabindex="-1" aria-labelledby="embedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="embedModalLabel">Embed QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Copy and paste this code to embed the QR code on your website:</p>
+                
+                <div class="mb-3">
+                    <label for="embedSize" class="form-label">Size (pixels)</label>
+                    <select class="form-select mb-2" id="embedSize">
+                        <option value="100">100x100</option>
+                        <option value="150" selected>150x150</option>
+                        <option value="200">200x200</option>
+                        <option value="250">250x250</option>
+                        <option value="300">300x300</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="embedCode" class="form-label">Embed Code</label>
+                    <div class="input-group">
+                        <textarea class="form-control font-monospace" id="embedCode" rows="3" readonly>
+&lt;img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ url.get_absolute_url|urlencode }}" alt="QR Code"&gt;
+                        </textarea>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" data-clipboard-target="#embedCode">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    For advanced embedding options, consider using our <a href="#">QR Code API</a>.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update embed code when size changes
+    const sizeSelect = document.getElementById('embedSize');
+    const embedCode = document.getElementById('embedCode');
+    
+    if (sizeSelect && embedCode) {
+        sizeSelect.addEventListener('change', function() {
+            const size = this.value;
+            const newCode = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data={{ url.get_absolute_url|urlencode }}" alt="QR Code">`;
+            embedCode.value = newCode.trim();
+        });
+    }
+    
+    // Initialize QR scan chart if data exists
+    const qrScanChartEl = document.getElementById('qrScanChart');
+    
+    if (qrScanChartEl) {
+        const ctx = qrScanChartEl.getContext('2d');
+        const qrScanData = JSON.parse('{{ qr_scan_data|escapejs|safe }}');
+        const qrScanLabels = JSON.parse('{{ qr_scan_labels|escapejs|safe }}');
+        
+        if (qrScanData && qrScanLabels) {
+            const qrScanChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: qrScanLabels,
+                    datasets: [{
+                        label: 'Scans',
+                        data: qrScanData,
+                        borderColor: 'rgba(74, 107, 223, 1)',
+                        backgroundColor: 'rgba(74, 107, 223, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            },
+                            grid: {
+                                drawBorder: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+    }
+    
+    // Handle copy buttons
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-clipboard-target');
+            const target = document.querySelector(targetId);
+            
+            if (target) {
+                // For textarea/input, select the content
+                if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+                    target.select();
+                } else {
+                    // For other elements, create a range to select the text
+                    const range = document.createRange();
+                    range.selectNode(target);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                }
+                
+                try {
+                    // Copy the selected text
+                    const success = document.execCommand('copy');
+                    if (success) {
+                        // Show feedback
+                        const icon = this.querySelector('i');
+                        if (icon) {
+                            const originalIcon = icon.className;
+                            icon.className = 'fas fa-check';
+                            
+                            // Reset icon after 2 seconds
+                            setTimeout(() => {
+                                icon.className = originalIcon;
+                            }, 2000);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                } finally {
+                    // Always remove the selection
+                    window.getSelection().removeAllRanges();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

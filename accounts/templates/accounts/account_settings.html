@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Account Settings</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist" aria-orientation="vertical">
+                                <a class="nav-link active" id="profile-tab" data-bs-toggle="pill" href="#profile" role="tab" aria-controls="profile" aria-selected="true">
+                                    <i class="fas fa-user-circle me-2"></i>Profile
+                                </a>
+                                <a class="nav-link" id="password-tab" data-bs-toggle="pill" href="#password" role="tab" aria-controls="password">
+                                    <i class="fas fa-key me-2"></i>Password
+                                </a>
+                                <a class="nav-link" id="notifications-tab" data-bs-toggle="pill" href="#notifications" role="tab" aria-controls="notifications">
+                                    <i class="fas fa-bell me-2"></i>Notifications
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="tab-content" id="settingsTabsContent">
+                                <!-- Profile Tab -->
+                                <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                                    <h5 class="mb-4">Profile Information</h5>
+                                    <form method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        {{ form|crispy }}
+                                        <div class="form-group mt-4">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-2"></i>Save Changes
+                                            </button>
+                                            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-times me-2"></i>Cancel
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
+                                
+                                <!-- Password Tab -->
+                                <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                                    <h5 class="mb-4">Change Password</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        To change your password, please use the password reset form.
+                                    </div>
+                                    <a href="{% url 'password_change' %}" class="btn btn-primary">
+                                        <i class="fas fa-key me-2"></i>Change Password
+                                    </a>
+                                </div>
+                                
+                                <!-- Notifications Tab -->
+                                <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+                                    <h5 class="mb-4">Notification Preferences</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Notification preferences will be available soon.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Activate the tab based on URL hash
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlHash = window.location.hash;
+        if (urlHash) {
+            const tabTrigger = new bootstrap.Tab(document.querySelector(`a[href="${urlHash}"]`));
+            tabTrigger.show();
+        }
+    });
+</script>
+{% endblock %}

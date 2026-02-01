@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}API Tokens{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">API Tokens</h4>
+                        <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#createTokenModal">
+                            <i class="fas fa-plus me-1"></i> Create Token
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        API tokens allow you to authenticate with our API. Treat them like passwords and keep them secure.
+                    </div>
+                    
+                    {% if tokens %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Token</th>
+                                        <th>Last Used</th>
+                                        <th>Created</th>
+                                        <th>Expires</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for token in tokens %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ token.name }}</strong>
+                                                {% if token.id == 1 %}
+                                                    <span class="badge bg-primary">Active</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <code class="token-preview" data-token="{{ token.key }}">
+                                                    {{ token.key|slice:":8" }}••••••••••••••••••••••••••••••••
+                                                </code>
+                                                <button class="btn btn-sm btn-outline-secondary btn-copy ms-2" data-token="{{ token.key }}">
+                                                    <i class="far fa-copy"></i>
+                                                </button>
+                                            </td>
+                                            <td>{{ token.last_used|default:"Never" }}</td>
+                                            <td>{{ token.created }}</td>
+                                            <td>
+                                                {% if token.expires %}
+                                                    {{ token.expires }}
+                                                {% else %}
+                                                    Never
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteTokenModal" 
+                                                        data-token-id="{{ token.id }}"
+                                                        data-token-name="{{ token.name }}">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-key fa-4x text-muted mb-3"></i>
+                            <h5>No API Tokens</h5>
+                            <p class="text-muted">You don't have any API tokens yet. Create one to get started.</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTokenModal">
+                                <i class="fas fa-plus me-1"></i> Create Token
+                            </button>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mt-4 pt-3 border-top">
+                        <h5>API Documentation</h5>
+                        <p>Check out our <a href="#" class="text-decoration-none">API documentation</a> to learn how to use your tokens.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Token Modal -->
+<div class="modal fade" id="createTokenModal" tabindex="-1" aria-labelledby="createTokenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:api_tokens' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="createTokenModalLabel">Create New API Token</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tokenName" class="form-label">Token Name</label>
+                        <input type="text" class="form-control" id="tokenName" name="token_name" required 
+                               placeholder="e.g., Production, Development, CI/CD">
+                        <div class="form-text">What's this token for?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tokenExpiry" class="form-label">Expiration</label>
+                        <select class="form-select" id="tokenExpiry" name="token_expiry">
+                            <option value="">Never</option>
+                            <option value="7">7 days</option>
+                            <option value="30">30 days</option>
+                            <option value="90">90 days</option>
+                            <option value="365">1 year</option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Make sure to copy your token now. You won't be able to see it again!
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key me-1"></i> Create Token
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Token Modal -->
+<div class="modal fade" id="deleteTokenModal" tabindex="-1" aria-labelledby="deleteTokenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:api_tokens' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" id="deleteTokenId" name="token_id" value="">
+                
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteTokenModalLabel">Delete API Token</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the token <strong id="tokenNameToDelete"></strong>?</p>
+                    <p class="text-danger">This action cannot be undone. Any applications using this token will no longer have access to the API.</p>
+                    
+                    <div class="form-check
+                    <input class="form-check-input" type="checkbox" id="confirmDeleteToken">
+                    <label class="form-check-label" for="confirmDeleteToken">
+                        I understand that this action is irreversible
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                    <i class="fas fa-trash-alt me-1"></i> Delete Token
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle token copy button clicks
+    document.querySelectorAll('.btn-copy').forEach(button => {
+        button.addEventListener('click', function() {
+            const token = this.getAttribute('data-token');
+            navigator.clipboard.writeText(token).then(() => {
+                // Show tooltip or change icon to indicate success
+                const originalHTML = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                
+                // Revert after 2 seconds
+                setTimeout(() => {
+                    this.innerHTML = originalHTML;
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        });
+    });
+    
+    // Handle token preview hover
+    document.querySelectorAll('.token-preview').forEach(span => {
+        span.addEventListener('mouseenter', function() {
+            const token = this.getAttribute('data-token');
+            this.textContent = token;
+        });
+        
+        span.addEventListener('mouseleave', function() {
+            const token = this.getAttribute('data-token');
+            this.textContent = token.substring(0, 8) + '•'.repeat(32);
+        });
+    });
+    
+    // Handle delete token modal
+    const deleteTokenModal = document.getElementById('deleteTokenModal');
+    if (deleteTokenModal) {
+        deleteTokenModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const tokenId = button.getAttribute('data-token-id');
+            const tokenName = button.getAttribute('data-token-name');
+            
+            document.getElementById('tokenNameToDelete').textContent = tokenName;
+            document.getElementById('deleteTokenId').value = tokenId;
+        });
+    }
+    
+    // Enable/disable delete button based on checkbox
+    const confirmDeleteToken = document.getElementById('confirmDeleteToken');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (confirmDeleteToken && confirmDeleteBtn) {
+        confirmDeleteToken.addEventListener('change', function() {
+            confirmDeleteBtn.disabled = !this.checked;
+        });
+    }
+</script>
+{% endblock %}

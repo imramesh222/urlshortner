@@ -1,0 +1,608 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ url.title|default:"Untitled Link" }} Clicks - URL Shortener{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'shortener:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'shortener:url_list' %}">My Links</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'shortener:url_analytics' url.short_code %}">Analytics</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Clicks</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">
+            {{ url.title|default:"Untitled Link" }}
+            <a href="{% url 'shortener:edit_url' url.short_code %}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-edit"></i>
+            </a>
+        </h1>
+        <div class="text-muted small mt-1">
+            <a href="{{ url.original_url }}" target="_blank" class="text-muted text-truncate d-inline-block" style="max-width: 300px;">
+                {{ url.original_url }}
+            </a>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'shortener:export_clicks' url.short_code %}" class="btn btn-outline-primary">
+            <i class="fas fa-download me-1"></i> Export
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="h3 mb-1">{{ total_clicks|intcomma }}</div>
+                <div class="text-muted small">Total Clicks</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="h3 mb-1">{{ unique_visitors|intcomma }}</div>
+                <div class="text-muted small">Unique Visitors</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="h3 mb-1">{{ countries.count|intcomma }}</div>
+                <div class="text-muted small">Countries</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="h3 mb-1">{{ referrers.count|intcomma }}</div>
+                <div class="text-muted small">Referrers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">From</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">To</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-3">
+                <label for="country" class="form-label">Country</label>
+                <select class="form-select" id="country" name="country">
+                    <option value="">All Countries</option>
+                    {% for country in countries %}
+                        <option value="{{ country.country_code }}" {% if request.GET.country == country.country_code %}selected{% endif %}>
+                            {{ country.country_name }} ({{ country.count }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="referrer" class="form-label">Referrer</label>
+                <select class="form-select" id="referrer" name="referrer">
+                    <option value="">All Referrers</option>
+                    {% for ref in referrers %}
+                        <option value="{{ ref.referrer|default:'direct' }}" {% if request.GET.referrer == ref.referrer|default:'direct' %}selected{% endif %}>
+                            {{ ref.referrer|default:'Direct / Unknown'|truncatechars:30 }} ({{ ref.count }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="search" class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Search by IP, city, or device..." value="{{ request.GET.search }}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="device_type" class="form-label">Device Type</label>
+                <select class="form-select" id="device_type" name="device_type">
+                    <option value="">All Devices</option>
+                    <option value="desktop" {% if request.GET.device_type == 'desktop' %}selected{% endif %}>Desktop</option>
+                    <option value="mobile" {% if request.GET.device_type == 'mobile' %}selected{% endif %}>Mobile</option>
+                    <option value="tablet" {% if request.GET.device_type == 'tablet' %}selected{% endif %}>Tablet</option>
+                    <option value="bot" {% if request.GET.device_type == 'bot' %}selected{% endif %}>Bot</option>
+                    <option value="other" {% if request.GET.device_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="browser" class="form-label">Browser</label>
+                <select class="form-select" id="browser" name="browser">
+                    <option value="">All Browsers</option>
+                    {% for browser in browsers %}
+                        <option value="{{ browser.browser }}" {% if request.GET.browser == browser.browser %}selected{% endif %}>
+                            {{ browser.browser|default:'Unknown' }} ({{ browser.count }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-1"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Clicks Table -->
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Click History</h5>
+        <div class="text-muted small">
+            Showing {{ clicks.start_index }}-{{ clicks.end_index }} of {{ clicks.paginator.count }} clicks
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if clicks %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Time</th>
+                            <th>Location</th>
+                            <th>Device</th>
+                            <th>Browser</th>
+                            <th>Referrer</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for click in clicks %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <div class="fw-bold">{{ click.clicked_at|date:"M j, Y" }}</div>
+                                        <div class="text-muted small">{{ click.clicked_at|time:"g:i A" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if click.country_code %}
+                                    <div class="d-flex align-items-center">
+                                        <span class="fi fi-{{ click.country_code|lower }} me-2" 
+                                              style="font-size: 1.5em;" 
+                                              title="{{ click.country_name }}"></span>
+                                        <div>
+                                            <div>{{ click.city|default:"Unknown" }}{% if click.region %}, {{ click.region }}{% endif %}</div>
+                                            <div class="text-muted small">{{ click.country_name|default:"Unknown" }}</div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-{{ click.device_type|lower }} me-2 text-primary"></i>
+                                    <div>
+                                        <div>{{ click.device_type|default:"Unknown" }}</div>
+                                        <div class="text-muted small">{{ click.os|default:"Unknown OS" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if click.browser %}
+                                        <img src="https://www.google.com/s2/favicons?domain={{ click.browser|lower }}.com" 
+                                             alt="{{ click.browser }}" 
+                                             class="me-2" 
+                                             width="16" 
+                                             onerror="this.style.display='none'" />
+                                    {% endif %}
+                                    <div>
+                                        <div>{{ click.browser|default:"Unknown" }}</div>
+                                        <div class="text-muted small">{{ click.browser_version|default:"" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if click.referrer %}
+                                    <a href="{{ click.referrer }}" target="_blank" class="text-truncate d-block" style="max-width: 200px;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="top" title="{{ click.referrer }}">
+                                        {{ click.referrer|truncatechars:30 }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Direct / Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#clickDetails{{ click.id }}">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Click Details Modal -->
+                        <div class="modal fade" id="clickDetails{{ click.id }}" tabindex="-1" 
+                             aria-labelledby="clickDetailsLabel{{ click.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="clickDetailsLabel{{ click.id }}">
+                                            Click Details
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">Location Information</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width: 40%;">IP Address</th>
+                                                        <td>
+                                                            {{ click.ip_address }}
+                                                            <button class="btn btn-sm btn-link p-0 ms-2 copy-btn" 
+                                                                    data-clipboard-text="{{ click.ip_address }}"
+                                                                    data-bs-toggle="tooltip" 
+                                                                    title="Copy IP">
+                                                                <i class="far fa-copy"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Country</th>
+                                                        <td>
+                                                            {% if click.country_code %}
+                                                                <span class="fi fi-{{ click.country_code|lower }} me-1"></span>
+                                                            {% endif %}
+                                                            {{ click.country_name|default:"Unknown" }}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Region</th>
+                                                        <td>{{ click.region|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>City</th>
+                                                        <td>{{ click.city|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Postal Code</th>
+                                                        <td>{{ click.postal_code|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Coordinates</th>
+                                                        <td>
+                                                            {% if click.latitude and click.longitude %}
+                                                                <a href="https://www.google.com/maps?q={{ click.latitude }},{{ click.longitude }}" 
+                                                                   target="_blank" class="text-decoration-none">
+                                                                    {{ click.latitude }}, {{ click.longitude }}
+                                                                </a>
+                                                            {% else %}
+                                                                Unknown
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <h6 class="mb-3 mt-4">Device Information</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width: 40%;">Device Type</th>
+                                                        <td>
+                                                            <i class="fas fa-{{ click.device_type|lower }} me-1"></i>
+                                                            {{ click.device_type|default:"Unknown" }}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Device Model</th>
+                                                        <td>{{ click.device_model|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>OS</th>
+                                                        <td>{{ click.os|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>OS Version</th>
+                                                        <td>{{ click.os_version|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Browser</th>
+                                                        <td>{{ click.browser|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Browser Version</th>
+                                                        <td>{{ click.browser_version|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Is Mobile</th>
+                                                        <td>{{ click.is_mobile|yesno:"Yes,No,Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Is Tablet</th>
+                                                        <td>{{ click.is_tablet|yesno:"Yes,No,Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Is Bot</th>
+                                                        <td>{{ click.is_bot|yesno:"Yes,No,Unknown" }}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">Request Information</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width: 40%;">Timestamp</th>
+                                                        <td>
+                                                            {{ click.clicked_at|date:"F j, Y g:i A" }}
+                                                            <div class="text-muted small">
+                                                                {{ click.clicked_at|timesince }} ago
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Referrer</th>
+                                                        <td>
+                                                            {% if click.referrer %}
+                                                                <a href="{{ click.referrer }}" target="_blank" class="text-truncate d-block">
+                                                                    {{ click.referrer }}
+                                                                </a>
+                                                            {% else %}
+                                                                Direct / Unknown
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>User Agent</th>
+                                                        <td>
+                                                            <div class="text-truncate" style="max-width: 300px;" 
+                                                                 data-bs-toggle="tooltip" 
+                                                                 title="{{ click.user_agent }}">
+                                                                {{ click.user_agent|default:"Unknown" }}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Language</th>
+                                                        <td>{{ click.language|default:"Unknown" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Screen Resolution</th>
+                                                        <td>
+                                                            {% if click.screen_width and click.screen_height %}
+                                                                {{ click.screen_width }} x {{ click.screen_height }}
+                                                            {% else %}
+                                                                Unknown
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Viewport Size</th>
+                                                        <td>
+                                                            {% if click.viewport_width and click.viewport_height %}
+                                                                {{ click.viewport_width }} x {{ click.viewport_height }}
+                                                            {% else %}
+                                                                Unknown
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <h6 class="mb-3 mt-4">Technical Details</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width: 40%;">Session ID</th>
+                                                        <td>
+                                                            {{ click.session_id|default:"Unknown" }}
+                                                            {% if click.session_id %}
+                                                                <button class="btn btn-sm btn-link p-0 ms-2 copy-btn" 
+                                                                        data-clipboard-text="{{ click.session_id }}"
+                                                                        data-bs-toggle="tooltip" 
+                                                                        title="Copy Session ID">
+                                                                    <i class="far fa-copy"></i>
+                                                                </button>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>User ID</th>
+                                                        <td>
+                                                            {% if click.user %}
+                                                                {{ click.user.email }}
+                                                                <a href="#" class="ms-2" data-bs-toggle="tooltip" title="View User">
+                                                                    <i class="fas fa-user"></i>
+                                                                </a>
+                                                            {% else %}
+                                                                Guest
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>UTM Source</th>
+                                                        <td>{{ click.utm_source|default:"-" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>UTM Medium</th>
+                                                        <td>{{ click.utm_medium|default:"-" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>UTM Campaign</th>
+                                                        <td>{{ click.utm_campaign|default:"-" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>UTM Term</th>
+                                                        <td>{{ click.utm_term|default:"-" }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>UTM Content</th>
+                                                        <td>{{ click.utm_content|default:"-" }}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <a href="#" class="btn btn-primary">
+                                            <i class="fas fa-flag me-1"></i> Report Suspicious
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if clicks.has_other_pages %}
+            <div class="card-footer bg-white">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if clicks.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ clicks.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&laquo;</span>
+                            </li>
+                        {% endif %}
+                        
+                        {% for i in clicks.paginator.page_range %}
+                            {% if clicks.number == i %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                            {% else %}
+                                {% if i > clicks.number|add:'-3' and i < clicks.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            {{ i }}
+                                        </a>
+                                    </li>
+                                {% elif i == 1 or i == clicks.paginator.num_pages %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            {{ i }}
+                                        </a>
+                                    </li>
+                                {% elif i == clicks.number|add:'-3' or i == clicks.number|add:'3' %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if clicks.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ clicks.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&raquo;</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+        {% else %}
+            <div class="text-center p-5">
+                <i class="fas fa-mouse-pointer fa-3x text-muted mb-3"></i>
+                <h5>No click data available</h5>
+                <p class="text-muted">No clicks have been recorded for this link yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Flag Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/6.6.6/css/flag-icons.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Auto-submit form on filter change
+    const filterSelects = document.querySelectorAll('select[name="device_type"], select[name="browser"], select[name="country"], select[name="referrer"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+    
+    // Date range picker
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    
+    if (dateFrom && dateTo) {
+        // Set max date to today
+        const today = new Date().toISOString().split('T')[0];
+        dateFrom.max = today;
+        dateTo.max = today;
+        
+        // Set date_to min to date_from
+        dateFrom.addEventListener('change', function() {
+            dateTo.min = this.value;
+            if (dateTo.value && dateTo.value < this.value) {
+                dateTo.value = this.value;
+            }
+        });
+        
+        // Set date_from max to date_to
+        dateTo.addEventListener('change', function() {
+            dateFrom.max = this.value;
+            if (dateFrom.value > this.value) {
+                dateFrom.value = this.value;
+            }
+        });
+    }
+    
+    // Handle export button
+    const exportBtn = document.querySelector('.export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const format = this.getAttribute('data-format');
+            const url = new URL(window.location.href);
+            url.searchParams.set('format', format);
+            window.location.href = url.toString();
+        });
+    }
+});
+</script>
+{% endblock %}

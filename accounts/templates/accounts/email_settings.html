@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Email Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Email Preferences</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Manage your email notification preferences below.
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Email Notifications</h5>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="emailNotifications" name="email_notifications" checked>
+                                <label class="form-check-label" for="emailNotifications">
+                                    <strong>Email Notifications</strong>
+                                    <p class="text-muted small mb-0">Receive important account notifications via email</p>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="marketingEmails" name="marketing_emails">
+                                <label class="form-check-label" for="marketingEmails">
+                                    <strong>Marketing Emails</strong>
+                                    <p class="text-muted small mb-0">Receive promotions, product updates, and other marketing communications</p>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="newsletter" name="newsletter" checked>
+                                <label class="form-check-label" for="newsletter">
+                                    <strong>Newsletter</strong>
+                                    <p class="text-muted small mb-0">Subscribe to our monthly newsletter</p>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Notification Types</h5>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="newFeature" name="notification_types" value="new_feature" checked>
+                                <label class="form-check-label" for="newFeature">New features and updates</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="securityAlerts" name="notification_types" value="security_alerts" checked>
+                                <label class="form-check-label" for="securityAlerts">Security alerts</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="accountActivity" name="notification_types" value="account_activity" checked>
+                                <label class="form-check-label" for="accountActivity">Account activity</label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'accounts:account_settings' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Account Settings
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Email Address</h5>
+                    <p class="text-muted">
+                        Your current email address is <strong>{{ request.user.email }}</strong>
+                        {% if request.user.email_confirmed %}
+                            <span class="badge bg-success">Verified</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Not Verified</span>
+                            <a href="{% url 'accounts:resend_verification_email' %}" class="btn btn-sm btn-outline-primary ms-2">
+                                Verify Email
+                            </a>
+                        {% endif %}
+                    </p>
+                    <a href="#" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-envelope me-1"></i> Change Email Address
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

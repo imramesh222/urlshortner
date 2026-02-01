@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load shortener_filters %}
+
+{% block title %}{{ url.title|default:"Untitled Link" }} Analytics - URL Shortener{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-left: 4px solid var(--primary-color);
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .stat-label {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .change-positive {
+        color: #28a745;
+    }
+    
+    .change-negative {
+        color: #dc3545;
+    }
+    
+    .map-container {
+        height: 300px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .referrer-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .referrer-item:last-child {
+        border-bottom: none;
+    }
+    
+    .progress {
+        height: 6px;
+        margin-top: 8px;
+    }
+    
+    .device-icon {
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+    
+    .browser-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        object-fit: contain;
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline:before {
+        content: '';
+        position: absolute;
+        left: 9px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #eee;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+    
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    
+    .timeline-dot {
+        position: absolute;
+        left: -30px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .timeline-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    @media (max-width: 768px) {
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .map-container {
+            height: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'shortener:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'shortener:url_list' %}">My Links</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Analytics</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">
+            {{ url.title|default:"Untitled Link" }}
+            <a href="{% url 'shortener:edit_short_url' url.pk %}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-edit"></i>
+            </a>
+        </h1>
+        <div class="text-muted small mt-1">
+            <a href="{{ url.original_url }}" target="_blank" class="text-muted text-truncate d-inline-block" style="max-width: 300px;">
+                {{ url.original_url }}
+            </a>
+            <span class="mx-2">•</span>
+            Created {{ url.created_at|timesince }} ago
+            {% if url.expires_at %}
+                <span class="mx-2">•</span>
+                Expires in {{ url.expires_at|timeuntil }}
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex
+        {% if url.is_active %}
+            {% if url.is_expired %}
+                <span class="badge bg-warning">Expired</span>
+            {% else %}
+                <span class="badge bg-success">Active</span>
+            {% endif %}
+        {% else %}
+            <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
+        
+        {% if url.password %}
+            <span class="badge bg-info ms-2" data-bs-toggle="tooltip" title="Password Protected">
+                <i class="fas fa-lock"></i>
+            </span>
+        {% endif %}
+        
+        {% if url.is_one_time %}
+            <span class="badge bg-dark ms-2" data-bs-toggle="tooltip" title="One-time Link">
+                <i class="fas fa-link"></i>
+            </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Short URL Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8
+                <div class="input-group">
+                    <input type="text" class="form-control" id="shortUrl" value="{{ url.get_absolute_url }}" readonly>
+                    <button class="btn btn-outline-secondary copy-btn" type="button" data-clipboard-target="#shortUrl">
+                        <i class="far fa-copy"></i> Copy
+                    </button>
+                    <a href="{{ url.get_absolute_url }}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Visit
+                    </a>
+                </div>
+                <div class="form-text">Share this link anywhere you want to track clicks and engagement</div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'shortener:export_clicks' url.short_code %}?format=csv">CSV</a></li>
+                        <li><a class="dropdown-item" href="{% url 'shortener:export_clicks' url.short_code %}?format=json">JSON</a></li>
+                        <li><a class="dropdown-item" href="{% url 'shortener:export_clicks' url.short_code %}?format=xlsx">Excel</a></li>
+                    </ul>
+                </div>
+                <button type="button" class="btn btn-outline-primary ms-2" id="getQrCode">
+                    <i class="fas fa-qrcode me-1"></i> QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ total_clicks|intcomma }}</div>
+                        <div class="stat-label">Total Clicks</div>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-mouse-pointer text-primary"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="{% if click_change > 0 %}change-positive{% elif click_change < 0 %}change-negative{% endif %}">
+                        <i class="fas fa-arrow-{% if click_change > 0 %}up{% else %}down{% endif %}"></i> {{ click_change|abs }}% from last period
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ unique_visitors|intcomma }}</div>
+                        <div class="stat-label">Unique Visitors</div>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-users text-success"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="{% if visitor_change > 0 %}change-positive{% elif visitor_change < 0 %}change-negative{% endif %}">
+                        <i class="fas fa-arrow-{% if visitor_change > 0 %}up{% else %}down{% endif %}"></i> {{ visitor_change|abs }}% from last period
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ avg_click_rate|floatformat:1 }}%</div>
+                        <div class="stat-label">Avg. Click Rate</div>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-chart-pie text-warning"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="{% if click_rate_change > 0 %}change-positive{% elif click_rate_change < 0 %}change-negative{% endif %}">
+                        <i class="fas fa-arrow-{% if click_rate_change > 0 %}up{% else %}down{% endif %}"></i> {{ click_rate_change|abs }}% from last period
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-4">
+        <div class="card h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-number">{{ top_country|default:"N/A" }}</div>
+                        <div class="stat-label">Top Country</div>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-globe-americas text-info"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span>{{ top_country_percentage|default:"" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <!-- Click Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Clicks Over Time</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" data-period="day">Day</button>
+                    <button type="button" class="btn btn-outline-secondary active" data-period="week">Week</button>
+                    <button type="button" class="btn btn-outline-secondary" data-period="month">Month</button>
+                    <button type="button" class="btn btn-outline-secondary" data-period="year">Year</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="clicksChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Devices Chart -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Devices</h5>
+            </div>
+            <div class="card-body">
+                <div id="devicesChart" style="height: 300px;"></div>
+                <div class="mt-3">
+                    {% for device in devices %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-3">
+                            <i class="fas fa-{{ device.device_type|lower }} device-icon text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ device.device_type }}</span>
+                                <span class="fw-bold">{{ device.percentage }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ device.percentage }}%" 
+                                     aria-valuenow="{{ device.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row -->
+<div class="row mb-4">
+    <!-- Referrers -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Top Referrers</h5>
+                <a href="#" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if referrers %}
+                    {% for referrer in referrers %}
+                    <div class="referrer-item">
+                        <div class="text-truncate" style="max-width: 70%;">
+                            <i class="fas fa-external-link-alt me-2 text-muted"></i>
+                            {% if referrer.referrer %}
+                                <a href="{{ referrer.referrer }}" target="_blank" class="text-decoration-none">
+                                    {{ referrer.referrer|truncatechars:40 }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Direct / Unknown</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="fw-bold me-2">{{ referrer.count }}</span>
+                            <small class="text-muted">{{ referrer.percentage }}%</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No referrer data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Countries -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Top Countries</h5>
+            </div>
+            <div class="card-body">
+                {% if countries %}
+                    {% for country in countries %}
+                    <div class="referrer-item">
+                        <div class="d-flex align-items-center">
+                            <span class="fi fi-{{ country.country_code|lower }} me-2"></span>
+                            <span>{{ country.country_name }}</span>
+                        </div>
+                        <div>
+                            <span class="fw-bold me-2">{{ country.count }}</span>
+                            <small class="text-muted">{{ country.percentage }}%</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-globe fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No country data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Activity</h5>
+        <a href="{% url 'shortener:url_clicks' url.short_code %}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        {% if recent_clicks %}
+            <div class="list-group list-group-flush">
+                {% for click in recent_clicks %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3" style="flex: 1; min-width: 0;">
+                            <div class="d-flex align-items-center">
+                                {% if click.country_code %}
+                                    <span class="fi fi-{{ click.country_code|lower }} me-2" 
+                                          style="font-size: 1.5em;" 
+                                          title="{{ click.country_name }}"></span>
+                                {% else %}
+                                    <div class="me-2" style="width: 24px; height: 18px; background: #f8f9fa; border: 1px solid #dee2e6;"></div>
+                                {% endif %}
+                                <div style="min-width: 0;">
+                                    <div class="text-truncate" style="max-width: 300px;">
+                                        {% if click.referrer %}
+                                            <a href="{{ click.referrer }}" target="_blank" class="text-decoration-none">
+                                                {{ click.referrer|truncatechars:40 }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">Direct / Unknown</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="fas fa-{{ click.device_type|lower }} me-1"></i> {{ click.device_type }}
+                                        <span class="mx-2">•</span>
+                                        {{ click.browser }}
+                                        {% if click.os %}
+                                            <span class="mx-2">•</span>
+                                            {{ click.os }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted" title="{{ click.clicked_at|date:'M j, Y g:i A' }}">
+                                {{ click.clicked_at|timesince }} ago
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center p-5">
+                <i class="fas fa-mouse-pointer fa-3x text-muted mb-3"></i>
+                <h5>No activity yet</h5>
+                <p class="text-muted">Your link activity will appear here</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrCodeModalLabel">QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-4">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ url.get_absolute_url|urlencode }}" 
+                         alt="QR Code" class="img-fluid" style="max-width: 250px;">
+                </div>
+                <p class="text-muted mb-4">Scan this QR code to visit your link</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data={{ url.get_absolute_url|urlencode }}" 
+                       class="btn btn-primary" download="qrcode-{{ url.short_code }}.png">
+                        <i class="fas fa-download me-1"></i> Download
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary copy-btn" 
+                            data-clipboard-text="{{ url.get_absolute_url }}">
+                        <i class="far fa-copy me-1"></i> Copy Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Flag Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/6.6.6/css/flag-icons.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // QR Code Modal
+    const qrCodeBtn = document.getElementById('getQrCode');
+    const qrCodeModal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+    
+    if (qrCodeBtn) {
+        qrCodeBtn.addEventListener('click', function() {
+            qrCodeModal.show();
+        });
+    }
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Time period buttons
+    const periodButtons = document.querySelectorAll('[data-period]');
+    periodButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const period = this.getAttribute('data-period');
+            
+            // Update active state
+            periodButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // In a real implementation, you would fetch new data for the selected period
+            // and update the charts accordingly
+            console.log('Selected period:', period);
+            
+            // For demo purposes, we'll just log the action
+            // In a real app, you would make an AJAX call to get the data for the selected period
+            // and update the charts with the new data
+        });
+    });
+    
+    // Clicks Over Time Chart
+    const clicksCtx = document.getElementById('clicksChart').getContext('2d');
+    const clicksChart = new Chart(clicksCtx, {
+        type: 'line',
+        data: {
+            labels: {{ date_labels|safe }},
+            datasets: [
+                {
+                    label: 'Clicks',
+                    data: {{ click_data|safe }},
+                    borderColor: 'rgba(74, 107, 223, 1)',
+                    backgroundColor: 'rgba(74, 107, 223, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Previous Period',
+                    data: {{ prev_click_data|safe }},
+                    borderColor: 'rgba(108, 117, 125, 0.5)',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointBackgroundColor: 'rgba(108, 117, 125, 0.5)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(108, 117, 125, 0.8)',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    },
+                    grid: {
+                        drawBorder: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+    
+    // Devices Chart
+    const devicesCtx = document.createElement('canvas');
+    document.getElementById('devicesChart').appendChild(devicesCtx);
+    
+    const devicesChart = new Chart(devicesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ device_labels|safe }},
+            datasets: [{
+                data: {{ device_data|safe }},
+                backgroundColor: [
+                    'rgba(74, 107, 223, 0.8)',
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ],
+                borderWidth: 0,
+                offset: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '70%',
+            radius: '90%'
+        }
+    });
+    
+    // Resize charts when the window is resized
+    window.addEventListener('resize', function() {
+        clicksChart.resize();
+        devicesChart.resize();
+    });
+});
+</script>
+{% endblock %}

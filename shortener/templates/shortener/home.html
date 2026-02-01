@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Free URL Shortener - Shorten Your Links{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body p-5">
+                <h1 class="text-center mb-4">Shorten Your Links</h1>
+                <p class="text-center text-muted mb-4">
+                    Free URL Shortener for transforming long, ugly links into nice, memorable and trackable short URLs.
+                </p>
+                
+                <form method="post" action="{% url 'shortener:create_short_url' %}" class="mb-4">
+                    {% csrf_token %}
+                    <div class="input-group mb-3">
+                        <input type="url" name="original_url" class="form-control form-control-lg" 
+                               placeholder="Paste your long URL here" required>
+                        <button class="btn btn-primary btn-lg" type="submit">Shorten</button>
+                    </div>
+                    
+                    {% if user.is_authenticated %}
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="advancedOptions" data-bs-toggle="collapse" 
+                               data-bs-target="#advancedOptionsCollapse" aria-expanded="false" aria-controls="advancedOptionsCollapse">
+                        <label class="form-check-label" for="advancedOptions">Advanced Options</label>
+                    </div>
+                    
+                    <div class="collapse mb-3" id="advancedOptionsCollapse">
+                        <div class="card card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="customShortCode" class="form-label">Custom Short Code (optional)</label>
+                                    <input type="text" class="form-control" id="customShortCode" name="custom_short_code" 
+                                           placeholder="my-custom-link">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="expirationDays" class="form-label">Expires After (days)</label>
+                                    <input type="number" class="form-control" id="expirationDays" name="expiration_days" 
+                                           min="1" max="365" placeholder="Leave blank for no expiration">
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="oneTimeLink" name="is_one_time">
+                                        <label class="form-check-label" for="oneTimeLink">One-time link (deactivates after first use)</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="passwordProtect" 
+                                               data-bs-toggle="collapse" data-bs-target="#passwordField">
+                                        <label class="form-check-label" for="passwordProtect">Password protect this link</label>
+                                    </div>
+                                    <div class="collapse" id="passwordField">
+                                        <div class="mb-3">
+                                            <input type="password" class="form-control mt-2" id="password" 
+                                                   name="password" placeholder="Enter password">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </form>
+                
+                {% if not user.is_authenticated %}
+                <div class="text-center">
+                    <p class="mb-2">Want to track your links and access advanced features?</p>
+                    <a href="{% url 'account_signup' %}" class="btn btn-outline-primary me-2">Sign Up Free</a>
+                    <a href="{% url 'account_login' %}" class="btn btn-link">Login</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Features Section -->
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 70px; height: 70px; margin-bottom: 1rem;">
+                            <i class="fas fa-link fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Shorten Links</h5>
+                        <p class="card-text text-muted">Create short, memorable links that are easy to share.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 70px; height: 70px; margin-bottom: 1rem;">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Track Clicks</h5>
+                        <p class="card-text text-muted">Monitor how many clicks your links receive in real-time.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 70px; height: 70px; margin-bottom: 1rem;">
+                            <i class="fas fa-shield-alt fa-2x"></i>
+                        </div>
+                        <h5 class="card-title">Secure & Private</h5>
+                        <p class="card-text text-muted">Your data is encrypted and never shared with third parties.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="row mt-5">
+    <div class="col-12 text-center mb-4">
+        <h2>How It Works</h2>
+        <p class="text-muted">Shorten your links in just a few simple steps</p>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                     style="width: 50px; height: 50px; margin: 0 auto 1rem;">
+                    <span class="h4 mb-0">1</span>
+                </div>
+                <h5>Paste Your URL</h5>
+                <p class="text-muted">Enter your long URL in the input field above</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                     style="width: 50px; height: 50px; margin: 0 auto 1rem;">
+                    <span class="h4 mb-0">2</span>
+                </div>
+                <h5>Customize (Optional)</h5>
+                <p class="text-muted">Add a custom short code or set an expiration date</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                     style="width: 50px; height: 50px; margin: 0 auto 1rem;">
+                    <span class="h4 mb-0">3</span>
+                </div>
+                <h5>Share & Track</h5>
+                <p class="text-muted">Share your short link and track its performance</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body p-5 text-center">
+                <h2 class="mb-3">Ready to get started?</h2>
+                <p class="lead mb-4">Create your free account and start shortening your links today.</p>
+                <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg px-4 me-3">Sign Up Free</a>
+                <a href="{% url 'shortener:dashboard' %}" class="btn btn-outline-light btn-lg px-4">View Demo</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle password field visibility
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordCheckbox = document.getElementById('passwordProtect');
+        const passwordField = document.getElementById('password');
+        
+        if (passwordCheckbox && passwordField) {
+            passwordCheckbox.addEventListener('change', function() {
+                if (!this.checked) {
+                    passwordField.value = '';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
